@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Book of the Raven — An Owens Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Spectral:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --ink:#0b1211; --ink2:#121d1b; --bone:#e9e3d3; --bone-dim:#a9a594;
+    --accent:#c3a7e0;        /* lilac — shifts as she darkens */
+    --accent-dim:#7d6b94;
+    --gold:#c8a458;          /* gilt — tarnishes as she darkens */
+    --salt:#cfe1e2; --rule:#2a3633; --maxw:42rem;
+    --desat:0;               /* art desaturation 0..1 */
+    --veil:.55;              /* vignette strength */
+  }
+  /* ——— corruption tiers override the palette/atmosphere ——— */
+  body[data-tier="tempted"]{ --accent:#b89ad6; --gold:#bd9a50; --desat:.12; --veil:.6; }
+  body[data-tier="slipping"]{ --accent:#9f86b0; --gold:#9c8348; --desat:.3; --veil:.66; --salt:#c2cdcc; }
+  body[data-tier="lefthand"]{ --accent:#9c6f74; --gold:#7d6a40; --desat:.55; --veil:.74; --bone:#ded7c6; }
+  body[data-tier="raven"]{ --accent:#8a4744; --gold:#5f5638; --desat:.8; --veil:.84; --bone:#d6cfbd; --ink:#080d0c; }
+
+  /* ——— reader-comfort overrides (placed after tiers so they win) ——— */
+  body.calm{ --desat:0 !important; --veil:.40 !important; }
+  body.calm #scene-bg{ filter:none }
+  body.parchment{
+    --ink:#efe7d5 !important; --ink2:#e6dcc6; --bone:#2c2622 !important; --bone-dim:#6f6457;
+    --salt:#43342c; --rule:#d4c6a8; --gold:#8a6a2c; --accent:#6b4f86; --accent-dim:#9a8aac;
+    --veil:.10 !important;
+    background-image:radial-gradient(120% 80% at 50% -10%, #f6efdf 0%, var(--ink) 60%) !important; }
+  body.parchment #scene-bg{ opacity:.05 !important; filter:none }
+  body.parchment #scene-veil{ background:radial-gradient(120% 90% at 50% 0%, rgba(120,100,70,.03), rgba(120,100,70,.09) 72%) !important }
+  body.parchment .topbar{ background:linear-gradient(180deg,rgba(239,231,213,.95),transparent) }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--ink);color:var(--bone);
+    font-family:"Spectral",Georgia,serif;font-size:calc(1.06rem * var(--rscale,1));line-height:1.72;
+    -webkit-font-smoothing:antialiased;min-height:100vh;
+    background-image:radial-gradient(120% 80% at 50% -10%, #16221f 0%, var(--ink) 55%);
+    transition:background-color 1.2s, color 1.2s}
+  img{max-width:100%;display:block}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem 6rem;position:relative}
+
+  #scene-bg{position:fixed;inset:0;z-index:-2;background-size:cover;background-position:center;
+    opacity:.06;filter:grayscale(var(--desat)) contrast(1.05);transition:opacity .8s, filter 1.2s}
+  #scene-veil{position:fixed;inset:0;z-index:-1;
+    background:radial-gradient(120% 90% at 50% 0%, rgba(8,12,11,calc(var(--veil) - .25)), rgba(8,12,11,var(--veil)) 72%);
+    transition:background 1.2s}
+
+  .topbar{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
+    padding:.7rem 1rem;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--bone-dim);
+    z-index:8;background:linear-gradient(180deg,rgba(8,12,11,.92),transparent)}
+  .topbar .name{font-family:"Cormorant Garamond",serif;color:var(--gold);letter-spacing:.22em;transition:color 1.2s}
+  .topbar .controls{display:flex;gap:.5rem}
+  .topbar button{appearance:none;background:none;border:1px solid var(--rule);color:var(--bone-dim);
+    border-radius:2px;padding:.3rem .6rem;font:inherit;letter-spacing:.12em;cursor:pointer}
+  .topbar button:hover{color:var(--accent);border-color:var(--accent-dim)}
+  .topbar .gear{font-size:.82rem}
+  /* reader settings panel */
+  .rpanel{position:fixed;top:2.9rem;right:.7rem;z-index:12;width:min(20rem,92vw);
+    background:#0c1413;border:1px solid var(--rule);border-radius:6px;padding:.95rem 1.05rem 1.05rem;
+    box-shadow:0 18px 50px rgba(0,0,0,.55);display:none;color:var(--bone);text-transform:none;letter-spacing:0}
+  body.parchment .rpanel{background:#f3ecdb}
+  .rpanel.open{display:block}
+  .rpanel h4{font-family:"Cormorant Garamond",serif;font-weight:600;margin:0 0 .1rem;color:var(--salt);font-size:1.18rem}
+  .rpanel .hint{color:var(--bone-dim);font-size:.76rem;margin:0 0 .7rem;line-height:1.5}
+  .rrow{display:flex;align-items:center;justify-content:space-between;gap:.7rem;padding:.6rem 0;border-top:1px solid var(--rule)}
+  .rrow .rlab{font-size:.86rem}
+  .rrow .rlab small{display:block;color:var(--bone-dim);font-size:.72rem;margin-top:.12rem;line-height:1.4}
+  .sizer{display:flex;align-items:center;gap:.45rem;flex:none}
+  .sizer button{appearance:none;width:1.9rem;height:1.9rem;border:1px solid var(--rule);background:none;
+    color:var(--bone);border-radius:3px;font:inherit;font-size:.95rem;cursor:pointer;line-height:1}
+  .sizer button:hover{border-color:var(--accent);color:var(--accent)}
+  .sizer .val{min-width:3.1rem;text-align:center;font-size:.74rem;color:var(--bone-dim)}
+  .toggle{position:relative;width:2.6rem;height:1.5rem;border-radius:999px;border:1px solid var(--rule);
+    background:#0a100f;cursor:pointer;transition:background .2s,border-color .2s;flex:none}
+  body.parchment .toggle{background:#e3d8bf}
+  .toggle::after{content:"";position:absolute;top:50%;left:.18rem;transform:translateY(-50%);
+    width:1.05rem;height:1.05rem;border-radius:50%;background:var(--bone-dim);transition:left .2s,background .2s}
+  .toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 38%,transparent);border-color:var(--accent-dim)}
+  .toggle[aria-pressed="true"]::after{left:calc(100% - 1.23rem);background:var(--accent)}
+
+  /* interactive spellcraft */
+  .craft{margin:.4rem 0 0}
+  .ingredient{display:block;width:100%;text-align:left;margin:.45rem 0;padding:.7rem .9rem;
+    background:#0e1714;border:1px solid var(--rule);border-radius:3px;color:var(--bone);cursor:pointer;
+    font:inherit;transition:border-color .15s,background .15s}
+  body.parchment .ingredient{background:#efe7d2}
+  .ingredient:hover{border-color:var(--accent-dim)}
+  .ingredient[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,#0e1714)}
+  .ingredient.left[aria-pressed="true"]{border-color:var(--gold);background:color-mix(in srgb,#7d1f1f 18%,#0e1714)}
+  .ingredient.reverse[aria-pressed="true"]{border-color:#7fa6b6;background:color-mix(in srgb,#37606f 20%,#0e1714)}
+  body.parchment .ingredient[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 14%,#efe7d2)}
+  .ingredient .iname{display:block;font-family:"Cormorant Garamond",serif;font-weight:600;font-size:1.12rem;color:var(--salt)}
+  .ingredient .inote{display:block;font-size:.82rem;color:var(--bone-dim);margin-top:.1rem;font-style:italic}
+  .craft-status{font-style:italic;color:var(--bone-dim);text-align:center;min-height:1.5em;margin:.85rem 0 .3rem;font-size:.92rem;transition:color .3s}
+  /* the readable grimoire */
+  .modal-card.grim{max-width:40rem;max-height:85vh;overflow:auto;text-align:left}
+  .grim h3{font-size:1.55rem;margin:0}
+  .grim h4{font-family:"Cormorant Garamond",serif;color:var(--accent);font-size:1.05rem;letter-spacing:.1em;
+    text-transform:uppercase;margin:1.15rem 0 .25rem;border-top:1px solid var(--rule);padding-top:.7rem}
+  .grim p{margin:.3rem 0;font-size:.95rem;line-height:1.6}
+  .grim .recipe{margin:.5rem 0;padding-left:.9rem;border-left:2px solid var(--rule)}
+  .grim .recipe b{color:var(--salt);font-family:"Cormorant Garamond",serif;font-size:1.08rem}
+  .grim .recipe.warn{border-left-color:var(--gold)}
+
+  /* thread rail */
+  #thread{position:fixed;top:0;left:max(.5rem,calc(50% - var(--maxw)/2 - 3.2rem));height:100vh;width:2.4rem;
+    display:flex;flex-direction:column;align-items:center;padding-top:1.2rem;z-index:5;pointer-events:none}
+  #thread .line{flex:1;width:1px;background:repeating-linear-gradient(var(--accent-dim) 0 6px,transparent 6px 12px);opacity:.5}
+  #thread .stitch{width:9px;height:9px;border-radius:50%;background:var(--ink);border:1px solid var(--accent);
+    margin:.1rem 0;box-shadow:0 0 8px color-mix(in srgb, var(--accent) 60%, transparent)}
+  #thread .stitch.dark{border-color:var(--gold);background:#1a0f0f}
+  @media(max-width:980px){#thread{display:none}}
+
+  .eyebrow{font-family:"Cormorant Garamond",serif;font-weight:600;text-transform:uppercase;
+    letter-spacing:.32em;font-size:.72rem;color:var(--gold);margin:0 0 .5rem;transition:color 1.2s}
+  h1.cover-title{font-family:"Cormorant Garamond",serif;font-weight:500;
+    font-size:clamp(2.7rem,10vw,4.6rem);line-height:.98;margin:.2rem 0 .4rem;color:var(--bone)}
+  h2.chapter{font-family:"Cormorant Garamond",serif;font-weight:500;
+    font-size:clamp(1.9rem,6.5vw,2.9rem);line-height:1.04;margin:.1rem 0 1.3rem;color:var(--salt)}
+
+  .plate{position:relative;margin:0 auto 2rem;max-width:20rem;padding:.55rem;
+    background:linear-gradient(160deg,#1c2724,#0d1614);border:1px solid var(--rule);border-radius:3px;
+    box-shadow:0 18px 50px -20px rgba(0,0,0,.8), inset 0 0 0 1px color-mix(in srgb,var(--gold) 10%,transparent)}
+  .plate::before,.plate::after{content:"";position:absolute;width:18px;height:18px;border:1.5px solid var(--gold);opacity:.55;transition:border-color 1.2s}
+  .plate::before{top:6px;left:6px;border-right:0;border-bottom:0}
+  .plate::after{bottom:6px;right:6px;border-left:0;border-top:0}
+  .plate img{border-radius:2px;width:100%;filter:saturate(calc(1 - var(--desat))) contrast(1.02);transition:filter 1.2s}
+
+  .body p{margin:0 0 1.15rem}
+  .body p.lead::first-letter{font-family:"Cormorant Garamond",serif;float:left;font-size:3.5rem;line-height:.72;
+    padding:.32rem .5rem 0 0;color:var(--accent);font-weight:500;transition:color 1.2s}
+  .omen{font-family:"Cormorant Garamond",serif;font-style:italic;color:var(--accent);
+    text-align:center;margin:1.7rem auto;max-width:32rem;opacity:.92;transition:color 1.2s}
+  .whisper{display:block;margin:1.1rem 0;padding-left:1rem;border-left:2px solid var(--accent-dim);
+    color:var(--bone-dim);font-style:italic;font-family:"Spectral",serif}
+  .whisper b{color:var(--accent);font-style:normal;font-weight:400;font-family:"Cormorant Garamond",serif;
+    text-transform:uppercase;letter-spacing:.16em;font-size:.7rem;display:block;margin-bottom:.2rem}
+
+  .prompt{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:1.3rem;color:var(--salt);text-align:center;margin:2.3rem 0 1.1rem}
+  .choices{display:flex;flex-direction:column;gap:.85rem}
+  .choice{appearance:none;text-align:left;cursor:pointer;color:var(--bone);
+    background:linear-gradient(180deg,rgba(26,38,35,.85),rgba(15,24,22,.85));
+    border:1px solid var(--rule);border-left:2px solid var(--accent-dim);border-radius:3px;
+    padding:1rem 1.15rem 1.05rem 2.2rem;position:relative;font-family:"Spectral",serif;font-size:1.02rem;line-height:1.5;
+    transition:border-color .25s,transform .2s,background .25s,box-shadow .25s}
+  .choice .lab{display:block;font-family:"Cormorant Garamond",serif;font-weight:600;font-size:1.16rem;color:var(--salt);margin-bottom:.15rem}
+  .choice .sub{color:var(--bone-dim);font-size:.96rem}
+  .choice::before{content:"✦";position:absolute;left:.8rem;top:1.05rem;color:var(--accent);font-size:.85rem;opacity:.7;transition:opacity .25s,transform .25s}
+  .choice.left::before{content:"☾"}      /* left-hand choices marked subtly */
+  .choice:hover,.choice:focus-visible{border-left-color:var(--accent);border-color:var(--accent-dim);
+    background:linear-gradient(180deg,rgba(34,48,44,.95),rgba(18,29,27,.95));
+    box-shadow:0 10px 30px -16px color-mix(in srgb,var(--accent) 50%,transparent);transform:translateY(-1px);outline:none}
+
+  .cover{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3rem 1.25rem}
+  .cover .series{font-family:"Cormorant Garamond",serif;text-transform:uppercase;letter-spacing:.4em;font-size:.72rem;color:var(--gold);margin-bottom:1.3rem}
+  .cover .epigraph{max-width:30rem;color:var(--bone-dim);font-style:italic;font-family:"Cormorant Garamond",serif;font-size:1.22rem;line-height:1.5;margin:1.3rem auto 2rem}
+  .btn{appearance:none;cursor:pointer;font-family:"Cormorant Garamond",serif;font-weight:600;letter-spacing:.16em;text-transform:uppercase;font-size:.9rem;
+    color:var(--ink);background:linear-gradient(180deg,#d8b876,var(--gold));border:0;border-radius:2px;padding:.95rem 2.1rem;
+    box-shadow:0 12px 30px -12px color-mix(in srgb,var(--gold) 60%,transparent);transition:transform .2s,box-shadow .2s}
+  .btn:hover,.btn:focus-visible{transform:translateY(-2px);outline:none}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent-dim);box-shadow:none}
+  .credit{color:var(--bone-dim);font-size:.8rem;letter-spacing:.04em;margin-top:2.4rem;opacity:.7}
+
+  .interlude{text-align:center}
+  .interlude .tier-name{font-family:"Cormorant Garamond",serif;font-size:clamp(1.8rem,6vw,2.6rem);color:var(--accent);margin:.4rem 0 1rem;transition:color 1.2s}
+  .savebox{margin:2rem auto 0;max-width:34rem;border:1px solid var(--rule);border-radius:3px;padding:1rem;background:rgba(8,12,11,.5)}
+  .savebox h3{font-family:"Cormorant Garamond",serif;text-transform:uppercase;letter-spacing:.2em;font-size:.72rem;color:var(--accent);margin:0 0 .6rem}
+  .savebox textarea{width:100%;background:#0c1413;color:var(--bone-dim);border:1px solid var(--rule);border-radius:2px;
+    font-family:ui-monospace,monospace;font-size:.72rem;padding:.5rem;resize:vertical;min-height:3.4rem}
+  .savebox .row{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
+  .endnav{display:flex;gap:.9rem;justify-content:center;flex-wrap:wrap;margin-top:2.2rem}
+
+  .modal{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:1.2rem;background:rgba(6,9,8,.8)}
+  .modal-card{max-width:34rem;width:100%;background:linear-gradient(180deg,#16221f,#0c1413);border:1px solid var(--rule);border-radius:4px;padding:1.3rem;box-shadow:0 30px 70px -20px #000}
+  .modal-card h3{font-family:"Cormorant Garamond",serif;text-transform:uppercase;letter-spacing:.2em;font-size:.78rem;color:var(--accent);margin:0 0 .5rem}
+  .modal-card textarea{width:100%;background:#0c1413;color:var(--bone-dim);border:1px solid var(--rule);border-radius:2px;font-family:ui-monospace,monospace;font-size:.72rem;padding:.5rem;resize:vertical;min-height:4rem;margin-top:.4rem}
+  .modal-card .row{display:flex;gap:.5rem;margin-top:.7rem}
+  .fade{animation:rise .7s ease both}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .stagger>*{opacity:0;animation:rise .6s ease forwards}
+  .stagger>*:nth-child(1){animation-delay:.05s}.stagger>*:nth-child(2){animation-delay:.16s}.stagger>*:nth-child(3){animation-delay:.27s}
+  @media(prefers-reduced-motion:reduce){.fade,.stagger>*{animation:none!important;opacity:1!important;transform:none!important}*{transition:none!important}}
+  ::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}
+</style>
+</head>
+<body data-tier="light">
+<div id="scene-bg"></div><div id="scene-veil"></div>
+<div class="topbar" id="topbar" style="display:none">
+  <span class="name">The Book of the Raven</span>
+  <span class="controls"><button id="readerBtn" class="gear" title="Reading settings" aria-label="Reading settings">Aa</button><button id="grimoireBtn" title="The Owens Grimoire">Grimoire</button><button id="saveBtn">Save</button><button id="restart">Begin again</button></span>
+</div>
+<div class="rpanel" id="rpanel" role="dialog" aria-label="Reading settings">
+  <h4>Reading settings</h4>
+  <p class="hint">Comfort only — saved on this device, and they never change your story.</p>
+  <div class="rrow"><span class="rlab">Text size</span>
+    <span class="sizer"><button id="rMinus" aria-label="Smaller text">A−</button><span class="val" id="rVal">Normal</span><button id="rPlus" aria-label="Larger text">A+</button></span></div>
+  <div class="rrow"><span class="rlab">Calm mode<small>Keep the omens, drop the darkening haze</small></span>
+    <button class="toggle" id="rCalm" role="switch" aria-pressed="false" aria-label="Calm mode"></button></div>
+  <div class="rrow"><span class="rlab">Parchment theme<small>Warm light page for daytime reading</small></span>
+    <button class="toggle" id="rParch" role="switch" aria-pressed="false" aria-label="Parchment theme"></button></div>
+</div>
+<nav id="thread" aria-hidden="true"></nav>
+<main class="wrap" id="app"></main>
+
+<script>
+const CDN="https://d8j0ntlcm91z4.cloudfront.net/user_3F3JBI4btJ6q4R2Nk3V9o8hCYtd/";
+const IMG={
+  grimoire:"hf_20260627_125005_93e56ec5-0a34-4b20-beb6-fcfae92516fa.png",
+  magician:"hf_20260627_135349_350b81b5-f82d-4c06-b3c2-563ec7607250.png",
+  rosa:"hf_20260627_125007_03c0181d-1b3b-4d4a-9be6-15320d8f8a6f.png",
+  strength:"hf_20260627_135402_e3b5c5a2-6b73-4c9d-b067-d3505fcb5a7b.png",
+  star_blue:"hf_20260627_135758_4b83ef2a-8802-4206-a7a1-34bc89a2d4b8.png",
+  star_dark:"hf_20260627_135350_b6c2c1da-a05d-4526-9497-bed25bed1668.png",
+  aunt:"hf_20260626_171244_9fe99a75-9fc1-45a3-961b-5f877067b222.png",
+  cardback:"hf_20260627_135403_ab0974a9-9f6f-4939-ab4f-006e17977304.png",
+  t_clap:"hf_20260624_174614_a711d92f-d21b-41e4-b89c-223266e1ac93.png",
+  t_lichen:"hf_20260624_190951_27a0317e-a69a-4ae4-a1e2-56bd329b261c.png",
+  t_cobble:"hf_20260624_174620_6a61ef3f-4ccf-4019-a90b-30c2bd97e1a3.png",
+  t_moss:"hf_20260624_190947_f457faa0-cc9a-4315-b973-a328594d209c.png"
+};
+const U=k=>CDN+IMG[k];
+
+/* ——— STATE ——— */
+let S={v:2,node:"a1_quiet",dark:0,returns:0,flags:{},sacrifices:[],thread:[]};
+const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+function tier(d){return d<=0?"light":d<=2?"tempted":d<=5?"slipping":d<=8?"lefthand":"raven";}
+function tierName(d){return {light:"In the Light",tempted:"Tempted",slipping:"Slipping",lefthand:"Left-Handed",raven:"The Raven's"}[tier(d)];}
+
+/* world-omen lines keyed to how far left she's gone (shown subtly in scenes) */
+const OMENS={
+  light:["The lilacs by the gate keep to their season, for now."],
+  tempted:["The rosemary at the gate has flowered a blue too dark for June, and only Kylie has noticed."],
+  slipping:["The well water has begun to taste of salt, though the sea is forty miles off; the crow on the chimney will not meet her eye."],
+  lefthand:["Her reflection lags a half-second behind her in the dark glass. The bees have gone silent in the lavender. When she weeps, lately, the tears come slow and will not fall."],
+  raven:["The mirrors fog when she passes. The garden blackens at the roots she favours. The dead in the Owens plot have stopped answering when she brings the cake and the news."]
+};
+function omenLine(){const arr=OMENS[tier(S.dark)];return arr[0];}
+
+/* ——— STORY ——— */
+const story={
+cover:{cover:true},
+
+a1_quiet:{
+  eyebrow:"Act One · i",
+  title:"The Quiet Year",
+  img:"star_blue", bg:"t_clap",
+  text:[
+    "A year is a long time in a family that counts its grief in graves. A year ago the worst of it had come and gone — the plague that wasn't named in any newspaper, the man who'd carried it, the season the Owens women paid for with two beloved lives and Sally's magic both. Now the man was gone, ruined and wandering, and the village that had nearly died of him was already half-forgetting; each May they still gathered to remember, and the rest of the year they remembered to forget.",
+    "The house on Magnolia Street had settled into something like peace. Sally kept no magic anymore and seemed lighter for the lack of it, prickly and ordinary and quietly, accidentally happy with Ian, who had stayed; she had gone back to the work she loved, directing the Owens Library in town — the tilting old building that had once been the jail where the first Owens woman waited to be hanged. Gillian had married her gentle Ben Frye, and there was a baby now — Birdie, red-haired and serious as a small judge, who could already call the birds to the windowsill. Gillian herself had a way of going quiet sometimes, mid-sentence, as if she had stepped into a room in her own mind and found the door locked — there were years out west she never spoke of, years Sally had once feared were lost to bad men and worse circles, though Gillian seemed to remember almost none of them, and was mortified, always, by how little magic the family believed she had. Antonia was deep in her medical training at Harvard, a new mother herself, and pretended she wasn't tired. Vincent telephoned from France on Sundays. And the aunts, Franny and Jet, were in the Owens plot under good granite, where the family still brought them cake after every wedding and told them all the news, because in this family the dead are only quieter, never gone.",
+    "Kylie should have been the happiest of all of them. The curse was broken; love no longer killed; she had Gideon, steady, funny, ordinary Gideon Barnes, who loved her without a single drop of fear. She was tall and tender and home from Harvard for the summer, and there was nothing left in the world to be afraid of.",
+    "Except that she missed it. Not the harm — she was not a monster, whatever the town thought of Owens women. She missed the clarity. For one bright, terrible while she had stood on the left-handed side of magic, where a thing that was broken could simply be made unbroken, where a fever could be lifted off a child like a coat off a chair, where she had been, for the length of a held breath, powerful enough to fix anything. She had turned back. She had helped end the man who took her there. And she had never told a living soul how good it had felt to be that strong, or how often, a year on, she still reached for it in her sleep.",
+    "It ran in the blood, the pull; she understood that now. Her great-grandfather Vincent — telephoning so brightly from France, as though he had never done anything darker in his life than play the piano, had stood exactly where she had stood, young and gifted and tempted by the left hand, and had been the only Owens with the nerve to turn from it and walk away. The others in the family who had heard the dark calling, the ones nobody discussed at dinner, had mostly answered.",
+    "She was on the porch with Birdie that evening, the baby fretful and hot-cheeked with a tooth coming in, when she felt the old pull stir — that small, reasonable voice that had never entirely left her."
+  ],
+  dyn:()=>[`<div class="whisper"><b>the thread</b>You could take the ache out of her in a heartbeat. You know exactly how. Where is the harm in a heartbeat?</div>`],
+  prompt:"How does Kylie soothe the baby?",
+  choices:[
+    {lab:"Rock her the long, ordinary way.",sub:"Hum the song Sally used to hum. Walk the porch until the tooth stops winning. It takes an hour. It costs nothing.",to:"a1_call",dark:0,set:{}},
+    {lab:"Smooth the ache out of her with a touch.",sub:"Just a feather of the craft: a fingertip to the hot little cheek. The pain simply… leaves. The thread sighs with pleasure.",to:"a1_call",dark:1,left:true,set:{touched:true}}
+  ]
+},
+
+a1_call:{
+  eyebrow:"Act One · ii",
+  title:"The Book's First Call",
+  img:"grimoire", bg:"t_cobble",
+  text:[
+    "That night she dreamed of the library.",
+    "Not the reading room with its green lamps, but the magic shelf at the back — the one Franny and Jet had always kept for the books that were not for lending, in the Owens Library her own mother now ran, the tilting old building that had once been a jail. In the dream a small volume sat wedged between two larger, more imposing ones, and it was warm, and it was breathing, slow and patient as something asleep, and it knew her. It called her by the name she had only ever been called once, on the far side of the left hand, the name the dark had given her. She woke with salt drying on her lips, and she understood, the way an Owens woman understands weather, that The Book of the Raven was still on its shelf across town, with old Miss Hardwick the only soul who knew exactly where, doing the only thing that book had ever done. Waiting for the next woman who needed it.",
+    "She did not have to wait long to need it.",
+    "Word came up Magnolia Street the next afternoon, the way bad news always travels — porch to porch, faster than any wire. The Vesper child, little Sam, six years old, had taken a fever no doctor in the county could name. Three days now. They had stopped saying he would be fine. By evening they had stopped saying much at all.",
+    "Kylie stood at the gate with the message still warm in her ear and the dream still cold in her chest, and the thread said, very softly, the truest and worst thing it knew: that she could fix this. That she was perhaps the only person alive who could."
+  ],
+  dyn:()=>[ `<p class="omen">${omenLine()}</p>` ],
+  prompt:"Before she goes to the Vespers' — what does she do with what she's feeling?",
+  choices:[
+    {lab:"Tell Sally and Gillian about the dream.",sub:"Say the pull out loud, to the two women who'd know it for what it is. Honesty is a right-handed habit, and a hard one.",to:"a1_fork",dark:0,set:{told:true}},
+    {lab:"Tell no one. Keep the pull a secret.",sub:"They worry enough. And a secret, the thread points out, is so much easier to act on than a confession.",to:"a1_fork",dark:1,left:true,set:{secret:true}}
+  ]
+},
+
+a1_fork:{
+  eyebrow:"Act One · iii",
+  title:"The Working",
+  img:"magician", bg:"t_lichen",
+  text:[
+    "The Vespers' kitchen smelled of fever and failed remedies. Sam was a small heat under too many blankets, his breath a thin rasp, his mother a woman who had run entirely out of things to try and had come, at the last, to the Owens door — as the desperate always eventually do, hating themselves a little for it, loving their child more.",
+    "“They said you people help,” Mrs. Vesper said, which was as close to a prayer as she had left.",
+    "Kylie knelt by the bed and laid the back of her hand against the boy's cheek, and the fever told her everything. She knew two ways to answer it. She had always known two ways. That was the whole trouble with being what she was.",
+    "There was the long way — the right-handed way. Three nights at the stove without sleep, the old hard cures her aunts had set down in their careful hands, her own strength poured into the boy a spoonful at a time, no guarantee at the end of it, a real chance she would empty herself and lose him anyway. It would cost her, and only her, and it might not be enough.",
+    "And there was the other way. She would not even need the book in her hands; she remembered enough of its grammar. She could lift the fever off the child the way you lift a coat off a chair, whole and clean and instant, and he would be laughing by morning. The left hand never failed. That was its terrible mercy. The only question the thread never answered, because it did not care, was where a lifted weight comes down."
+  ],
+  dyn:()=>[`<div class="whisper"><b>the thread</b>The long way might not save him. You know this. You felt his breath. Be honest with yourself, if no one else: you have the power to make a dying child laugh by morning, and you are hesitating over the bill. What kind of mercy is that?</div>`],
+  prompt:"How does Kylie answer the fever?",
+  craft:{
+    intro:"Kneel at the boy's bed and lay the working out in front of you. In this family the choosing <i>is</i> the spell — so reach for what you mean to use, and be honest about which hand is reaching.",
+    components:[
+      {label:"Feverfew",hand:"right",note:"to turn the illness aside — an old, patient cure"},
+      {label:"Rosemary &amp; salt",hand:"right",note:"to dispel what has taken hold of him"},
+      {label:"A blue bead at his throat",hand:"right",note:"blue for protection, the way the aunts taught"},
+      {label:"Courage Tea",hand:"right",note:"currants, thyme, warming spice — for healing and strength"},
+      {label:"Her own warmth, spooned in by hand",hand:"right",note:"the witch carries what the witch spends"},
+      {label:"A drop of her own blood",hand:"left",note:"blood magic — power that asks no one's leave"},
+      {label:"Belladonna, for the sight",hand:"left",note:"poison that shows the sickness whole — and more besides"},
+      {label:"The Raven's grammar, spoken plain",hand:"left",note:"the word that lifts the fever entire and instant — and sets the weight down elsewhere"}
+    ],
+    layLabel:"Lay the working",
+    leftDark:3,
+    rightTo:"a1_right", leftTo:"a1_left",
+    rightSacrifice:"three nights' sleep and a year of her own warmth"
+  }
+},
+
+a1_right:{
+  eyebrow:"Act One · iv",
+  title:"The Long Way",
+  img:"strength", bg:"t_clap",
+  text:[
+    "She did it the hard way, the way that cost her and no one else.",
+    "Three nights she did not sleep. She worked at the Vespers' stove and then her own, the aunts' cures laid open before her in their careful hands, and she poured herself into the boy a spoonful and an hour at a time, her steadiness, her warmth, some unnameable green year of her own life that she would not get back. On the second night his breath went so thin she thought she had spent herself for nothing. She wept, then, the ordinary way, the tears falling like tears.",
+    "On the third morning the fever broke. Not lifted, not vanished — broken, slowly, the way a real fever breaks, leaving the boy wrung-out and alive and asking for toast. Mrs. Vesper held Kylie's face in both hands and could not speak. Kylie went home grey and hollowed and twenty years older around the eyes, and slept for a day and a night, and the world outside her window was exactly as unmarked as she had left it. Nothing had been moved. No one, anywhere, had paid for Sam Vesper's life except the girl who saved it.",
+    "Gideon was there when she woke, with chocolate cake she was too tired to eat and a quiet that asked nothing of her. She let him hold her. She did not tell him how close she had come to doing it the other way — how the easy door had stood open the whole three nights, how she had heard the thread the entire time, patient as a tooth, reminding her that she could have saved the boy in a single breath and slept like a child."
+  ],
+  dyn:()=>[
+    `<div class="whisper"><b>the thread</b>Look at you. Hollow. Grey. You aged yourself a year and nearly lost him, and you call that the better way? I'd have had him laughing by Tuesday. I'll be here when you're tired of being good.</div>`,
+    `<p class="omen">${omenLine()}</p>`
+  ],
+  prompt:"",
+  to:"act1_close"
+},
+
+a1_left:{
+  eyebrow:"Act One · iv",
+  title:"The Raven's Grammar",
+  img:"rosa", bg:"t_lichen",
+  text:[
+    "She lifted the fever off him like a coat off a chair.",
+    "There is no honest way to describe how good it felt, so here is the dishonest one, which is truer: it felt like coming home to a house she had never lived in but had always, somehow, owned. The boy's breath came easy between one heartbeat and the next. By morning he was laughing. Mrs. Vesper wept and called her an angel, and the word sat strangely, because Kylie had not felt angelic. She had felt strong, and right, and entirely herself, more herself than she had been in a year of being good.",
+    "Then the bill came, quietly and to the wrong door. It always does. This first time the wrong door was her own. She noticed it that evening at the dark kitchen window: her reflection lagged half a second behind her, lifting its hand a breath after she lifted hers, watching her with her own eyes. The well water, when she ran the tap, came up brine. And when she thought of the aunts in their good granite and felt the old grief rise on schedule, the tears welling and welling and refusing to fall. The crow left the chimney that night and did not come back.",
+    "Small things. Deniable things. A year of practice in not telling anyone how the dark felt had made her very good at not telling herself either. The thread, sated, purred that this was nothing, a tithe, a rounding error — that next time the working would be even cleaner, the bill even smaller, that she was a natural, that she had always been a natural, that her aunts had wasted her on cures and patience when she could have been this."
+  ],
+  dyn:()=>[ `<p class="omen">${omenLine()}</p>` ],
+  prompt:"Gillian, who can still feel these things — who feels them far more keenly than a woman of her supposed small talent ever should, though no one in the family has thought to ask why — catches Kylie's wrist in the dark kitchen. For a moment her eyes go distant, as if she is reaching for something just out of sight, something cold and far away; then it is gone. “I know that look,” she says. “I watched it nearly swallow your mother. And I think — though I couldn't tell you how — that I have worn it myself, once, somewhere I can't get back to. You can still come back from here. But not for free. Not anymore.”",
+  choices:[
+    {lab:"Step back. Pay what it costs.",sub:"Give the Raven's grammar back to the dark — and lose, with it, the sound of your mother's voice singing the song you were soothing Birdie with. You will never quite hear it again.",to:"a1_back",dark:-2,set:{returned:true},sacrifice:"the sound of Sally's voice singing"},
+    {lab:"Keep it. It was a child's life.",sub:"You saved him. You'd do it again. Why give back the one thing you've ever been truly good at? The thread agrees, warmly.",to:"a1_keep",dark:2,left:true,set:{kept:true}}
+  ]
+},
+
+a1_back:{
+  eyebrow:"Act One · v",
+  title:"What Coming Back Costs",
+  img:"aunt", bg:"t_moss",
+  text:[
+    "She gave it back. It is harder than it sounds, giving back the thing you are best at; it is like setting down your own hands.",
+    "Gillian walked her out to the garden in the dark and they did it together, the old way, with salt and a knot of blue thread and the wrong-blooming rosemary, and Kylie felt the Raven's grammar lift out of her, reluctant, leaving a cold clean ache where it had been. The reflection in the window steadied. The well, by morning, ran sweet. But the law is the law, and coming back is never free, and the price it took was small and exact and cruel: the next time Kylie tried to hum Birdie to sleep, she reached for the song her mother used to hum — and found the place where the tune had been, and found it empty. She knew that there had been a song. She could not, anymore, hear it.",
+    "She sat on the porch with the silent baby and the silent song and understood the shape of the bargain she was now inside of. The door would always be open. The dark would always work. And every single time she walked back out of it, it would charge her something she loved and could not replace — a little more, the books all warned, each time than the time before."
+  ],
+  dyn:()=>[
+    `<div class="whisper"><b>the thread</b>You gave back a child's life's-worth of power to keep a tune you can't even hear anymore. I'll keep the door warm. You'll be back. They always come back, and the second walk is so much shorter than the first.</div>`,
+    `<p class="omen">${omenLine()}</p>`
+  ],
+  prompt:"",
+  to:"act1_close"
+},
+
+a1_keep:{
+  eyebrow:"Act One · v",
+  title:"A Natural",
+  img:"magician", bg:"t_lichen",
+  text:[
+    "She kept it. Of course she kept it. She had saved a child; she would save the next one too, and the next, and let the small grey town keep its small grey judgments. Gillian let go of her wrist and looked at her for a long moment with something Kylie had never seen on her aunt's face before — not anger. Fear. The plain fear of a woman who had watched her own sister walk into the left-handed dark to save them all, and come back out of it stripped of her magic and her hair.",
+    "“All right,” Gillian said quietly. “All right. But it doesn't stay in you, Kylie. That's the part nobody tells you. It doesn't stay where you put it. It spreads.”",
+    "She was right, of course. The reflection never quite caught up to Kylie again. The well stayed brine. And though the bill for Sam Vesper's fever had landed, that first time, on her own small comforts, the next bill — she could feel it already, the way you feel weather, would land somewhere softer. Somewhere she loved. The thread did not deny it. The thread had stopped pretending. It simply pointed out, reasonably, that she was a natural, that the work was beautiful, and that the people who loved her would surely understand the cost of having a daughter who could make dying children laugh by morning."
+  ],
+  dyn:()=>[ `<p class="omen">${omenLine()}</p>` ],
+  prompt:"",
+  to:"act1_close"
+},
+
+act1_close:{ interlude:true },
+
+a2_open:{
+  eyebrow:"Act Two · i",
+  title:"The Bill Comes Due",
+  img:"magician", bg:"t_moss",
+  text:[
+    "The lilacs had given up their last brown blooms by the time the bill arrived — and bills never arrive when you are braced for them, but on an ordinary afternoon with the light going gold.",
+    "Gideon was at the Audubon preserve, where Beanbag the calf, half a ton now and entirely pleased with himself, had lived since the day he and Kylie stole him out from under his fate. Gideon volunteered there on weekends, mending fences and hauling feed, being the kind of ordinary good that asks no reward. Kylie was three fields away when she heard the shouting, and she knew, before she could see anything, the way an Owens woman knows weather, that something had gone terribly wrong.",
+    "A gate, a startled half-ton animal, a tractor that should have been switched off. By the time she reached him Gideon was on the ground and not waking, his blood very bright on the trampled grass, his breath the thin uncertain rasp she had heard once before, in a six-year-old's bedroom. The preserve was miles from any hospital. Help was coming, and help would be too slow.",
+    "And she knew two ways to answer it. She had always known two ways."
+  ],
+  dyn:()=>{
+    const t=tier(S.dark);
+    if(t==="slipping"||t==="lefthand"||t==="raven")
+      return [`<div class="whisper"><b>the thread</b>You know whose hand is in this. The bill for the Vesper child has been circling for weeks — the small bad lucks pooling at the edges of everyone you love — and now it has found the softest place of all. It found him. Don't look so stricken. You can simply take it back.</div>`,
+              `<p class="omen">${omenLine()}</p>`];
+    return [`<div class="whisper"><b>the thread</b>There is no reason to think this is your doing. Accidents are only accidents, even for an Owens woman. But you can save him in a single breath, and instead you kneel here in his blood doing arithmetic. How long will you let your scruples cost him?</div>`,
+            `<p class="omen">${omenLine()}</p>`];
+  },
+  prompt:"Gideon is dying in the grass. How does Kylie answer?",
+  choices:[
+    {lab:"Hold him. Save him the slow, human way.",sub:"Press the wound, breathe for him, pour your own strength in, and pray the ambulance beats the dark. Uncertain. Yours alone to pay.",to:"a2_right",dark:0,set:{a2right:true},sacrifice:"a winter of her own strength, spent keeping his heart going"},
+    {lab:"Take the dying off him now.",sub:"The Raven's grammar. He breathes between one heartbeat and the next. But the bill is too large to land on you alone now — and it will go looking.",to:"a2_left",dark:3,left:true,set:{a2left:true}}
+  ]
+},
+
+a2_right:{
+  eyebrow:"Act Two · ii",
+  title:"The Human Way",
+  img:"strength", bg:"t_clap",
+  text:[
+    "She did not reach for the book. She reached for him.",
+    "She pressed the wound with both hands and her whole weight and would not let go; she breathed for him when his breath faltered; she poured into him the plain animal strength of a girl who loved him, no grammar to it, no shortcut, only her own steadiness spent recklessly into a body that kept trying to leave. The ambulance came. The surgeons came. For two days it was a near thing, and she sat in a corridor that smelled of nothing magical at all and was, for once, glad of it.",
+    "He woke on the third day and asked, hoarsely, after the calf. He would carry the scar and a limp through one whole winter, and Kylie would carry the grey hollow of a woman who had given a season of herself away and asked nothing back. But the grass at the preserve grew in green and ordinary. The rain, when it came, was only rain. No one, anywhere, paid for Gideon Barnes except the girl who loved him."
+  ],
+  dyn:()=>{
+    const t=tier(S.dark);
+    if(t==="slipping"||t==="lefthand"||t==="raven")
+      return [`<div class="whisper"><b>the thread</b>Stubborn girl. You spent a winter of yourself and nearly lost him doing it the long way, when you already carry the short way in your hands. The salt is still in your well; suffering prettily this once did not buy you out of what you are. But it was — I'll grant you — almost brave.</div>`,
+              `<p class="omen">${omenLine()}</p>`];
+    return [`<div class="whisper"><b>the thread</b>You knelt in his blood and chose the slow way and got lucky. Next time the ambulance will be slower, or the wound deeper, and luck is not a plan. I am patient. I live in the place where your fear of losing him lives.</div>`,
+            `<p class="omen">${omenLine()}</p>`];
+  },
+  to:"act2_close"
+},
+
+a2_left:{
+  eyebrow:"Act Two · ii",
+  title:"What It Costs to Keep Him",
+  img:"rosa", bg:"t_lichen",
+  text:[
+    "She took the dying off him the way she had taken the fever off the Vesper child — cleanly, completely, the wound knitting under her hands like a film run backward. Gideon's breath came easy. His eyes opened. He looked up at her with such uncomplicated love that for one whole minute she felt nothing but triumphant, and right, and strong.",
+    "Then the bill went looking, because it was far too large to settle on her alone, and the threefold law does not forgive a debt — it only moves it. It moved that night. It crossed three fields and a town and a fierce iron fence and found the smallest, softest, most beloved thing the family had.",
+    "Birdie spiked a fever at midnight. Red-haired, serious Birdie, who could call the birds to the windowsill, woke screaming with a heat no thermometer could explain, and the sound Gillian made on the telephone was one Kylie had never heard her aunt make before. The rain that fell on Magnolia Street that night, against every forecast, was the faint rust-pink of watered blood. Kylie stood at the window with Gideon sleeping whole and safe behind her, and understood exactly what she had done, and to whom."
+  ],
+  dyn:()=>[`<p class="omen">${omenLine()}</p>`,
+    `<div class="whisper"><b>the thread</b>Don't be sentimental. You weighed them and you chose, even if you told yourself you didn't. He breathes. That was the point. The baby is strong, the baby is Owens, the baby will likely be fine. Probably. And if she isn't — well. You know how to fix that, too.</div>`],
+  prompt:"Gillian is already driving through the red rain to bring Birdie here. She will know the instant she sees Kylie's face. Step back — or hold what you've taken?",
+  choices:[
+    {lab:"Step back. Give him back to chance.",sub:"Undo the working so the bill lifts off Birdie — which means Gideon's reprieve is undone too, and his life returns to the hands of luck and surgeons. Returning, this deep, is no longer cheap.",to:"a2_back",dark:-2,set:{a2back:true},sacrifice:"the certainty that Gideon will live"},
+    {lab:"Hold what you've taken. Birdie is strong.",sub:"He is alive. You will not give that back. The baby is Owens; the family will pull her through; and you will carry what that makes you.",to:"a2_keep",dark:2,left:true,set:{a2kept:true}}
+  ]
+},
+
+a2_back:{
+  eyebrow:"Act Two · iii",
+  title:"Given Back to Chance",
+  img:"aunt", bg:"t_moss",
+  text:[
+    "She gave him back. Not to death — to chance, which is the most an honest witch is ever allowed to bargain for. She unmade the working in the red rain with Gillian's hands over hers, and felt the stolen death lift off Birdie and settle back into the realm of things that simply happen, to be argued with by surgeons and luck and not by her.",
+    "Birdie's fever broke before dawn. The rain ran clear. And miles away in a hospital bed, Gideon's mended wound tore quietly open again — because the dark does not give gifts, only loans, and it had come to collect the one it made. He did not die. But he was, once more, a man whose living was uncertain, and Kylie had to sit on her hands and let him be uncertain, let the hours and the doctors decide him, with the power to fix it right there in her mouth. That was the price this time: not a thing taken, but a mercy withheld. She had to choose him, and then refuse to save him, hour after hour, until the danger passed on its own."
+  ],
+  dyn:()=>[`<div class="whisper"><b>the thread</b>Do you feel that? That is what goodness costs, once you know the alternative. You sat beside him and let him suffer when you could have ended it, and you call that the right hand. I call it cowardice in a clean dress. I will be here the next time loving him isn't enough.</div>`,
+    `<p class="omen">${omenLine()}</p>`],
+  to:"act2_close"
+},
+
+a2_keep:{
+  eyebrow:"Act Two · iii",
+  title:"The Cost Walks the House",
+  img:"magician", bg:"t_lichen",
+  text:[
+    "She held what she had taken. Gideon lived, whole and unscarred, and never knew the price of it. Birdie did not break her fever for three days.",
+    "She pulled through in the end — she was Owens, and stubborn, and the whole family poured themselves into her the slow right-handed way that Kylie could have spared them with a single word. But something had shifted in the house on Magnolia Street. Gillian did not bring the baby to visit anymore. Sally watched her daughter across the kitchen with the careful, level eyes of a woman who had once walked into the left-handed dark herself, and knew the gait of someone going the other way and not turning back. No one said the word. They were a family that had always known how to not say the word.",
+    "Kylie told herself she would do it again. She told herself love was worth any bill, even one that came due in a baby's blood. The thread agreed with her, warm and total. It agreed with everything now — for they wanted, at last, exactly the same things."
+  ],
+  dyn:()=>[`<p class="omen">${omenLine()}</p>`,
+    `<div class="whisper"><b>the thread</b>There. Was that so hard? She lived, he lived, and only a little was spent on someone who'll heal. This is what power is for. Let them stand at the far end of the kitchen. You don't need them unafraid of you to be loved by the one who matters — and soon you won't need them at all.</div>`],
+  to:"act2_close"
+},
+
+act2_close:{ interlude:true },
+
+a_world_open:{
+  eyebrow:"Act Three · i",
+  title:"The Wider Bill",
+  img:"star_dark", bg:"t_moss",
+  text:[
+    "The threefold law does not bill only the witch. Hannah Owens had written that in the Grimoire in a hand gone brown with age, and Sally had made Kylie copy it out as a girl without ever explaining it, as you teach a child a prayer before they are old enough to need it. What you send into the world returns to you three times over, and the world, Kylie was learning, is a great deal wider than your own front door.",
+    "It started small, as the worst things tend to. The Petersons' well three streets over came up brackish and salt. For a week the birds fell silent over the whole of Magnolia Street, not only the Owens magnolia. The Mahoney boy, whose family had thrown crab apples at Owens women for three generations, broke his arm in a clear blue field with no tree in reach of him. None of it could be proved. All of it pointed, if you knew how to read it, in a single direction, like iron filings turning toward a magnet that nobody else could see.",
+    "The town began, the old way, to cross to the other side of the street. And the family began, the new way, to notice that the small wrongnesses kept their distance from everyone but Kylie."
+  ],
+  dyn:()=>{
+    const t=tier(S.dark);
+    const line=(t==="light"||t==="tempted")
+      ? "<p>It frightened her, how little of it she had meant. She had been so careful, mostly. And still the bill went out into the streets with her name on it, collecting from people who had never asked to be part of an Owens story.</p>"
+      : "<p>It did not frighten her as much as it should have, and that was the part she could not say aloud — that some cold, efficient room at the back of her mind had begun to file the town's small sufferings under <i>acceptable cost</i>, and to resent the ones who complained.</p>";
+    return [line,`<p class="omen">${omenLine()}</p>`];
+  },
+  to:"a_world_call"
+},
+
+a_world_call:{
+  eyebrow:"Act Three · ii",
+  title:"The Voice from France",
+  img:"magician", bg:"t_cobble",
+  text:[
+    "The phone rang at the hour Vincent always rang — Sunday dusk, France already deep in its night. He was the family's furthest exile and its longest survivor, the one who had faked his own death and lived to grow old in spite of every rule, and he had a way of knowing things across an ocean that no telephone could account for.",
+    "“You've gone quiet, kitten,” he said, which was what he called all the Owens girls when he meant to be gentle. “And the quiet has a flavour I recognise. Salt and iron. I had it on my own tongue for the better part of a year, a long time ago, when I was young and gifted and very, very tired of being told no.”",
+    "She didn't ask how he knew. The Owenses never had to. “Did you do it?” she asked instead. “Whatever it is the book wants. Did you?”",
+    "“I walked right up to it,” Vincent said. “Close enough to read the print. I am the only one of us who stood that near and turned around, and I'll tell you the truth nobody tells you, because it's the only thing that saved me. It is not the darkness that takes you. It's the kindness. It's the people you'd do anything for. The book never once asked me to be cruel — it asked me to be useful to the people I loved, and that is a far harder thing to refuse.”"
+  ],
+  dyn:()=>{
+    const t=tier(S.dark);
+    const w=(t==="lefthand"||t==="raven")
+      ? "Most of you, you mean to keep. The rest: the part that loves a boy and a half-ton calf and your terrible, ordinary life — you have already begun to spend, and the old man can hear it in your breathing down the line, and it is breaking his heart."
+      : "He is the proof, this bright ruined uncle, that the door opens outward as well as in, that a person can stand in the very mouth of it and choose, against all the family's evidence, to go home.";
+    return [`<div class="whisper"><b>Vincent</b>${w}</div>`,`<p class="omen">${omenLine()}</p>`];
+  },
+  prompt:"“The bill is loose in the town now,” Kylie tells him. “People who never chose this are paying for what I did.” Down the line, Vincent says nothing, and waits, the way only someone who loves you can wait.",
+  craft:{
+    intro:"Sink down on the kitchen floor with the Owens craft spread around you and decide how the town's loose bill gets paid. The ingredients <i>are</i> the decision — choose with open eyes.",
+    components:[
+      {label:"A line of salt at every threshold",hand:"right",note:"to call the harm home and hold it — the way Maria warded the windows"},
+      {label:"Rosemary oil on the doorframes",hand:"right",note:"to dispel what's loose in the streets, and draw it into yourself"},
+      {label:"Blue beads for the town's children",hand:"right",note:"blue for protection — you carry what you lift off them"},
+      {label:"Red thread, clove, blackthorn",hand:"right",note:"Isabelle's Protection page, paid for in your own strength"},
+      {label:"The working bound in her own blood",hand:"left",note:"blood seals it — and sends it where blood can't be traced"},
+      {label:"Henbane, to bind the cost to a stranger",hand:"left",note:"it can bind a soul to a fate — someone far off, with no face"},
+      {label:"Belladonna, to choose whose luck turns",hand:"left",note:"the sight, to pick the ones who'll never know it was you"},
+      {label:"Widdershins — walk the working backward",hand:"reverse",note:"the witch's path, counterclockwise: unmake what you started, and pay the climb"}
+    ],
+    layLabel:"Pay the bill",
+    leftDark:4,
+    rightTo:"a_world_right", leftTo:"a_world_left", reverseTo:"a_world_back",
+    reverseDark:-2, reverseLabel:"Walk it backward",
+    rightSacrifice:"a year of her own luck and health, spent quietly to call the bill home",
+    leftSet:{townHarm:true},
+    leftSacrifice:"the last of the part of her that needed a face before it could look away",
+    reverseSacrifice:"the warmth of Gideon's hand in hers — for a while she will feel nothing when he holds it"
+  }
+},
+
+a_world_right:{
+  eyebrow:"Act Three · iii",
+  title:"What the Witch Carries",
+  img:"strength", bg:"t_clap",
+  text:[
+    "She did it the hard way, which is the only right-handed way there is. She sat on the cold floor of the Owens kitchen with the windows open to the October dark and she called the whole loose bill home: the Petersons' salt well, the silent birds, the Mahoney boy's clean-snapped arm, and reeled it in the way you'd reel in a long, barbed line, and let it set its hooks in her instead.",
+    "By morning the well three streets over ran sweet. The birds came back to Magnolia Street and made an idiot racket about it. And Kylie could not get warm, and would not be able to for a long while; she had spent something she would not get back cheaply: some year of ordinary luck, some measure of the health a young woman takes for granted. Gideon found her grey-faced and shaking and made her tea she couldn't taste, and didn't ask, because he had learned not to ask, which was its own small grief.",
+    "The town would never know. That was the thing about the right hand: it did its work in the dark, took no credit, and left the witch poorer and the world none the wiser. It was, Kylie thought, almost exactly like love."
+  ],
+  dyn:()=>[`<p class="omen">${omenLine()}</p>`,
+    `<div class="whisper"><b>the book</b>How noble. How tired you look. I could have spread that thin across ten thousand strangers and you'd not have felt a thing — and instead you wear it on your own face, for people who'll still cross the street from you tomorrow. I can wait. Tired is its own kind of door.</div>`],
+  to:"act_world_close"
+},
+
+a_world_left:{
+  eyebrow:"Act Three · iii",
+  title:"Somewhere It Won't Be Missed",
+  img:"rosa", bg:"t_lichen",
+  text:[
+    "It was appallingly easy. That was the thing no one warned you about — not the difficulty of the dark but its ease, the way it laid the whole groaning weight of the threefold law across a lever and asked only which direction you'd like it to fall.",
+    "She sent it out. Not at anyone she could see. At the anonymous distance — a bad season somewhere with no name to her, a run of ruined luck among strangers who would never trace it back across the miles to a girl on a kitchen floor in Massachusetts. The salt left the Petersons' well. The birds came home. The Mahoney boy's arm knit clean. And Magnolia Street breathed out and decided, as towns will, that the Owens girl wasn't so bad after all.",
+    "Somewhere she would never visit, a bill came due in the lives of people whose only crime was being too far away to matter to her. Kylie felt fine. She felt better than fine. And the ease of feeling fine while strangers paid was the most frightening thing that had happened to her yet — because she could already tell it was a feeling she could get used to."
+  ],
+  dyn:()=>[`<p class="omen">${omenLine()}</p>`,
+    `<div class="whisper"><b>the book</b>There. Was that so hard? The world is enormous and most of it will never have a face to you. You could run the rest of your life this way — clean hands, full heart, the cost always over some horizon you've agreed not to look at. We are going to be so good together.</div>`],
+  to:"act_world_close"
+},
+
+a_world_back:{
+  eyebrow:"Act Three · iii",
+  title:"Uphill",
+  img:"star_blue", bg:"t_moss",
+  text:[
+    "She reached back for the working that had started it all and began, carefully, to take it apart.",
+    "It was harder than it had been to make. It is always harder the second time, and the third; the road back from the left hand runs uphill and grows steeper at every return, as if the dark keeps a ledger and charges interest. She unmade the thing. The ripples stilled. The town settled. And the price came due in the cruelest small coin the book could find: for weeks afterward, when Gideon reached for her hand, without thinking, the way other people breathe, she felt nothing at all. A numbness where the warmth had been. A held hand reported by the eyes only.",
+    "He noticed. Of course he noticed. He didn't say anything, but he began watching her face when he reached for her, checking, and she had to learn to perform a warmth she couldn't feel so as not to break his heart. She had bought the town's peace back. She was beginning to understand that everything bought from the book is bought on credit — and that the interest is always charged to the people you love."
+  ],
+  dyn:()=>[`<p class="omen">${omenLine()}</p>`,
+    `<div class="whisper"><b>the thread</b>You can keep coming back. No one's stopping you. It's only that each time the road is longer, and each time you leave a little more of the warmth on it — and one of these times you'll do the sums on the climb and decide it isn't worth it. That's the day I've been waiting for.</div>`],
+  to:"act_world_close"
+},
+
+act_world_close:{ interlude:true },
+
+a3_open:{
+  eyebrow:"Act Four · i",
+  title:"What the Book Wants",
+  img:"grimoire", bg:"t_cobble",
+  text:[
+    "In the end she went to the library at night, as you go to the things you have already decided to do and are only pretending to weigh.",
+    "Her mother's library. The Owens Library, the tilted old building that had been a jail three hundred years ago, where the first Owens woman had waited to hang and laid down instead a curse that outlived every judge who sentenced her. Sally's keys hung where Sally always left them. The magic shelf was at the back, behind the green-lamped reading room, and the small book was exactly where the dream had always promised, wedged between two larger, prouder volumes, warm to the touch, patient as a thing that had waited three centuries and could wait a little longer.",
+    "The Book of the Raven did not have a voice, exactly. It had her voice, the one she used inside her own skull, so that everything it offered arrived sounding like her own best idea. And tonight it offered the one thing it had been saving."
+  ],
+  dyn:()=>{
+    const t=tier(S.dark);
+    const greet=(t==="lefthand"||t==="raven")
+      ? `<div class="whisper"><b>the book</b>There you are. I have known your name since before you were born; it is written here, on the page that was always going to be yours, in a hand older than your family. You have done the hard part already. There is so little of you left to give.</div>`
+      : `<div class="whisper"><b>the book</b>You have been so careful. So good. And what has good bought the people you love? Come closer. I am not asking you to be cruel — I am offering you the very thing you have wanted since the night you watched your aunt go quiet in the middle of a sentence.</div>`;
+    return [greet,`<p class="omen">${omenLine()}</p>`,
+      `<p>It showed her Gillian. Not the bright, brittle aunt who told jokes to keep the dark out, but the woman underneath: a witch of enormous, buried power, her memories of some lost coven-bright decade walled off behind a spell so old and so deep that no one in the family had ever once thought to ask why Gillian — alone among them — was so certain she had no gift. <i>I can give her back to herself,</i> the book said, in Kylie's own voice. <i>Everything that was taken from her. Her power, her years, her name in the dark. You need only come all the way over, and turn the page, and she is whole. Is that not love? Is one girl's soul too much to pay for it?</i></p>`,
+      `<p>And the worst of it — the truest of it — was that Kylie wanted to. Not for the power. For Gillian. Which is, the book knew perfectly well, exactly how the left hand has always begun: with a desire that matters more than anything else in the world.</p>`];
+  },
+  prompt:"The library door opens behind her. Gillian stands in it in her nightgown, having felt this the way she feels everything she cannot explain. “Kylie,” she says, very quietly. “Don't you dare buy me back with that.” This is the door that does not open backward. How does Kylie answer the book?",
+  choices:[
+    {lab:"Close the book. Leave Gillian as she is.",sub:"Refuse the one thing you want most. Gillian stays walled off from her own power, perhaps forever — and you keep the road back to yourself. The hardest right-handed choice there is: a mercy withheld from someone you love, for her own sake.",to:"a3_refuse",dark:0,set:{refused:true},sacrifice:"the chance to give Gillian back her stolen self"},
+    {lab:"Turn the page. Cross over, for her.",sub:"Take the book wholly, become what it has waited for, and buy Gillian back with the last of yourself. There is no stepping back from this one — only the dark roads remain after.",to:"a3_cross",dark:5,left:true,set:{crossed:true,pointOfNoReturn:true}}
+  ]
+},
+
+a3_refuse:{
+  eyebrow:"Act Four · ii",
+  title:"Mercy Withheld",
+  img:"strength", bg:"t_clap",
+  text:[
+    "She closed the book.",
+    "It was the hardest thing she had ever done, and she did it badly, with shaking hands. She closed it on the one thing she truly wanted, which was never power, and always Gillian made whole, and she left her aunt standing in the doorway, walled off, perhaps forever, from whatever bright and terrible witch she had been before some lost circle took it out of her. Kylie chose her aunt's safety over her aunt's wholeness, which is a thing only love can bear to do, and only barely.",
+    "Gillian crossed the room, took the book gently out of Kylie's hands, and set it back on the shelf herself, between the two larger volumes, where it would wait for the next woman as it always had. “Good girl,” she whispered — and there was something in the way she said it, some old competence, some muscle-memory of a craft she could not name, that made Kylie certain the spell on her aunt was not as total as the book had wanted her to believe. That somewhere down in the locked room, Gillian remembered. That maybe, someday, by daylight and the slow right-handed way, the two of them might find out together what had been done to her, and by whom, and why."
+  ],
+  dyn:()=>{
+    const t=tier(S.dark);
+    const w=(t==="light"||t==="tempted")
+      ? "Nothing. For once the small reasonable voice has nothing at all to say. You closed the door it spent three acts holding open, and the silence where it used to be is the sound of your own life, handed back to you."
+      : "You think you've won. You've only postponed me. The salt is still in your well, the crow has not come back, and the book knows your name now. But, this once, go home. Sleep. I'll keep.";
+    return [`<div class="whisper"><b>the thread</b>${w}</div>`,`<p class="omen">${omenLine()}</p>`];
+  },
+  to:"act3_close"
+},
+
+a3_cross:{
+  eyebrow:"Act Four · ii",
+  title:"All the Way Over",
+  img:"rosa", bg:"t_lichen",
+  text:[
+    "She turned the page.",
+    "There is no describing it from the outside, and from the inside there are no words a person could lend you, because the thing that turns the last page is no longer quite speaking the language of the people who love it. The book gave her everything at once, the way the sea gives you everything at once, the moment you let go of the boat. And it kept its promise. That was the horror — it kept its promise.",
+    "Across the room Gillian gasped and went down to her knees as three stolen decades came roaring back into her all at once: the covens, the circles, the bright wicked years, the spell that had taken them, and the face (Kylie saw it cross her aunt's features, and did not know it, and filed it away) of whoever it was that had done the taking. Gillian was whole. Gillian was magnificent and terrible and restored, a witch of vast and ancient power kneeling on the library floor with her craft pouring back into her like blood into a sleeping limb. And she looked up at her niece with all of it returned to her, and what was in her face was not gratitude. It was grief — because she could see, now, precisely what it had cost, and precisely what Kylie had made of herself to pay it.",
+    "On the shelf, in the dark, the book closed itself, satisfied, and settled in to see what its new daughter would do."
+  ],
+  dyn:()=>[`<p class="omen">${omenLine()}</p>`,
+    `<div class="whisper"><b>the book</b>There. Was I not as good as my word? She is everything she was, and more — and she will spend the rest of her long life trying to undo what you did tonight, and failing, because some doors do not open backward. You and I, though, are only beginning. Let me show you what we are for.</div>`],
+  to:"act3_close"
+},
+
+act3_close:{ interlude:true }
+};
+
+/* ——— ENGINE ——— */
+const app=document.getElementById("app"), sceneBg=document.getElementById("scene-bg"),
+  topbar=document.getElementById("topbar"), threadEl=document.getElementById("thread");
+let trail=[];
+const SAVE_KEY="botr_save_v2", SCHEMA=2;
+const PREF_KEY="botr_prefs_v1";
+const RSTEPS=[{s:.92,n:"Small"},{s:1,n:"Normal"},{s:1.14,n:"Large"},{s:1.3,n:"Larger"}];
+let prefs={size:1,calm:false,parchment:false};
+function loadPrefs(){try{const v=localStorage.getItem(PREF_KEY);if(v)prefs=Object.assign(prefs,JSON.parse(v));}catch(e){}
+  prefs.size=Math.max(0,Math.min(RSTEPS.length-1,prefs.size|0));}
+function savePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){}}
+function applyPrefs(){
+  const step=RSTEPS[prefs.size]||RSTEPS[1];
+  document.documentElement.style.setProperty("--rscale",step.s);
+  document.body.classList.toggle("calm",!!prefs.calm);
+  document.body.classList.toggle("parchment",!!prefs.parchment);
+  const rv=document.getElementById("rVal");if(rv)rv.textContent=step.n;
+  const c=document.getElementById("rCalm");if(c)c.setAttribute("aria-pressed",String(!!prefs.calm));
+  const p=document.getElementById("rParch");if(p)p.setAttribute("aria-pressed",String(!!prefs.parchment));
+}
+function wireReader(){
+  const panel=document.getElementById("rpanel"),btn=document.getElementById("readerBtn");
+  btn.onclick=(e)=>{e.stopPropagation();panel.classList.toggle("open");};
+  document.addEventListener("click",(e)=>{if(panel.classList.contains("open")&&!panel.contains(e.target)&&e.target!==btn)panel.classList.remove("open");});
+  document.getElementById("rMinus").onclick=()=>{prefs.size=Math.max(0,prefs.size-1);savePrefs();applyPrefs();};
+  document.getElementById("rPlus").onclick=()=>{prefs.size=Math.min(RSTEPS.length-1,prefs.size+1);savePrefs();applyPrefs();};
+  document.getElementById("rCalm").onclick=()=>{prefs.calm=!prefs.calm;savePrefs();applyPrefs();};
+  document.getElementById("rParch").onclick=()=>{prefs.parchment=!prefs.parchment;savePrefs();applyPrefs();};
+}
+const ACTS={
+  act1_close:{label:"End of Act One", next:"a2_open", nextLabel:"Continue to Act Two", teaser:"Act Two — <i>the bill comes due on someone you love</i>."},
+  act2_close:{label:"End of Act Two", next:"a_world_open", nextLabel:"Continue to Act Three", teaser:"Act Three — <i>the cost spreads past the family</i>."},
+  act_world_close:{label:"End of Act Three", next:"a3_open", nextLabel:"Continue to Act Four", teaser:"Act Four — <i>the point of no return</i>."},
+  act3_close:{label:"End of Act Four", next:null, nextLabel:null, teaser:"The roads beyond — and the eventual endings — are still being written. Your grimoire-code holds everything."}
+};
+function encodeS(s){return btoa(unescape(encodeURIComponent(JSON.stringify(s))));}
+function decodeS(v){return JSON.parse(decodeURIComponent(escape(atob(v))));}
+function migrate(o){const base={v:SCHEMA,node:"a1_quiet",dark:0,returns:0,flags:{},sacrifices:[],thread:[]};
+  o=Object.assign({},base,o||{});o.flags=Object.assign({},o.flags||{});
+  if(!Array.isArray(o.sacrifices))o.sacrifices=[];if(!Array.isArray(o.thread))o.thread=[];
+  o.dark=Math.max(0,o.dark|0);o.v=SCHEMA;return o;}
+function autosave(){try{localStorage.setItem(SAVE_KEY,encodeS(S));}catch(e){}}
+function loadLocal(){try{const v=localStorage.getItem(SAVE_KEY);return v?migrate(decodeS(v)):null;}catch(e){return null;}}
+function clearLocal(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
+function resume(state){S=migrate(state);trail=[];applyTier();go(S.node);}
+
+function applyTier(){document.body.dataset.tier=tier(S.dark);}
+function setScene(bg){if(bg){sceneBg.style.backgroundImage=`url("${U(bg)}")`;sceneBg.style.opacity=.06;}else sceneBg.style.opacity=0;}
+function drawThread(){
+  threadEl.innerHTML="";const top=document.createElement("div");top.className="line";threadEl.appendChild(top);
+  S.thread.forEach(t=>{const s=document.createElement("div");s.className="stitch"+(t.left?" dark":"");s.title=t.lab;threadEl.appendChild(s);
+    const l=document.createElement("div");l.className="line";threadEl.appendChild(l);});
+}
+const plate=(k)=>`<figure class="plate"><img src="${U(k)}" alt="" loading="lazy"/></figure>`;
+const paras=(arr,lead)=>arr.map((p,i)=>p.startsWith("<")?p:`<p${lead&&i===0?' class="lead"':''}>${p}</p>`).join("");
+
+function go(id){
+  const n=story[id];
+  if(id==="cover"){renderCover();return;}
+  trail.push(id);S.node=id;autosave();
+  if(n.interlude){renderInterlude();return;}
+  if(n.craft){renderCraft(id);return;}
+  renderNode(id);
+}
+function choose(n,i){
+  const c=n.choices[i];
+  S.dark=Math.max(0,S.dark+(c.dark||0));
+  if(c.set)Object.assign(S.flags,c.set);
+  if(c.sacrifice)S.sacrifices.push(c.sacrifice);
+  if(c.dark&&c.dark<0)S.returns++;
+  S.thread.push({lab:c.lab.replace(/\.$/,""),left:!!c.left});
+  applyTier();
+  go(c.to);
+}
+
+function renderCover(){
+  S={v:SCHEMA,node:"a1_quiet",dark:0,returns:0,flags:{},sacrifices:[],thread:[]};trail=[];applyTier();
+  topbar.style.display="none";setScene("t_lichen");sceneBg.style.opacity=.08;threadEl.innerHTML="";
+  const saved=loadLocal();
+  app.innerHTML=`<section class="cover ${reduce?'':'fade'}">
+    <div class="series">Practical Magic · An Owens Story</div>
+    ${plate("grimoire")}
+    <h1 class="cover-title">The Book<br/>of the Raven</h1>
+    <p class="epigraph">Whatever you ask, I will answer. Whatever it costs, I will choose — and the bill does not always come to the hand that turned the page. Want softly. Love who you like. Set down no word you are not willing to pay for.</p>
+    <div class="endnav">${saved?`<button class="btn" id="continueBtn">Continue</button>`:""}<button class="btn ${saved?'ghost':''}" id="beginBtn">${saved?'Begin again':'Begin'}</button></div>
+    <p class="credit">Act One · a story that watches how you choose</p>
+  </section>`;
+  if(saved)document.getElementById("continueBtn").onclick=()=>resume(saved);
+  document.getElementById("beginBtn").onclick=()=>{clearLocal();go("a1_quiet");};
+}
+
+function renderNode(id){
+  const n=story[id];topbar.style.display="flex";setScene(n.bg);drawThread();
+  const dyn=n.dyn?n.dyn().join(""):"";
+  const choices=(n.choices||[]).map((c,i)=>
+    `<button class="choice ${c.left?'left':''}" data-i="${i}"><span class="lab">${c.lab}</span><span class="sub">${c.sub||""}</span></button>`).join("");
+  app.innerHTML=`<article class="${reduce?'':'fade'}">
+    <header style="padding-top:3.2rem"><p class="eyebrow">${n.eyebrow||""}</p><h2 class="chapter">${n.title}</h2></header>
+    ${n.img?plate(n.img):""}
+    <div class="body">${paras(n.text,true)}${dyn}</div>
+    ${n.choices?`<p class="prompt">${n.prompt||""}</p><div class="choices ${reduce?'':'stagger'}">${choices}</div>`
+      :`<div class="endnav"><button class="btn" id="contBtn">Continue</button></div>`}
+  </article>`;
+  if(n.choices)app.querySelectorAll(".choice").forEach(b=>b.onclick=()=>choose(n,+b.dataset.i));
+  else document.getElementById("contBtn").onclick=()=>go(n.to);
+  scrollTop();
+}
+
+function renderCraft(id){
+  const n=story[id];topbar.style.display="flex";setScene(n.bg);drawThread();
+  const cf=n.craft, picks=new Set();
+  const dyn=n.dyn?n.dyn().join(""):"";
+  const chips=cf.components.map((c,i)=>
+    `<button class="ingredient ${c.hand}" data-i="${i}" aria-pressed="false"><span class="iname">${c.label}</span><span class="inote">${c.note}</span></button>`).join("");
+  app.innerHTML=`<article class="${reduce?'':'fade'}">
+    <header style="padding-top:3.2rem"><p class="eyebrow">${n.eyebrow||""}</p><h2 class="chapter">${n.title}</h2></header>
+    ${n.img?plate(n.img):""}
+    <div class="body">${paras(n.text,true)}${dyn}</div>
+    <p class="prompt">${cf.intro}</p>
+    <div class="craft">${chips}
+      <p class="craft-status" id="craftStatus" role="status" aria-live="polite">Choose what you reach for.</p>
+      <div class="endnav"><button class="btn" id="layBtn" disabled>${cf.layLabel||"Lay the working"}</button></div>
+    </div>
+  </article>`;
+  const status=document.getElementById("craftStatus"), lay=document.getElementById("layBtn");
+  const craftKind=arr=>arr.some(c=>c.hand==="reverse")?"reverse":arr.some(c=>c.hand==="left")?"left":"right";
+  function refresh(){
+    const arr=[...picks].map(i=>cf.components[i]);
+    lay.disabled=!picks.size;
+    if(!picks.size){status.style.color="var(--bone-dim)";status.innerHTML="Choose what you reach for.";lay.textContent=cf.layLabel||"Lay the working";return;}
+    const kind=craftKind(arr);
+    if(kind==="reverse"){status.style.color="var(--salt)";status.innerHTML="You are unmaking what was done — widdershins, the witch's path, counterclockwise. The road back runs uphill, and it charges interest.";lay.textContent=cf.reverseLabel||"Walk it backward";}
+    else if(kind==="left"){status.style.color="var(--accent)";status.innerHTML="The room goes a degree colder. You have reached for the left hand — and a working remembers the hand that made it.";lay.textContent=cf.layLabel||"Lay the working";}
+    else{status.style.color="var(--bone-dim)";status.innerHTML="Clean hands. The work will cost you, and only you.";lay.textContent=cf.layLabel||"Lay the working";}
+  }
+  app.querySelectorAll(".ingredient").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i;
+    if(picks.has(i)){picks.delete(i);b.setAttribute("aria-pressed","false");}
+    else{picks.add(i);b.setAttribute("aria-pressed","true");}
+    refresh();
+  });
+  lay.onclick=()=>{
+    const arr=[...picks].map(i=>cf.components[i]);
+    S.flags.craftPicks=arr.map(c=>c.label);
+    const kind=craftKind(arr);
+    if(kind==="reverse"){
+      const dd=(cf.reverseDark!=null?cf.reverseDark:-2);
+      S.dark=Math.max(0,S.dark+dd);if(dd<0)S.returns++;
+      if(cf.reverseSet)Object.assign(S.flags,cf.reverseSet);
+      if(cf.reverseSacrifice)S.sacrifices.push(cf.reverseSacrifice);
+      S.thread.push({lab:"Walked the working backward",left:false});
+      applyTier();go(cf.reverseTo);
+    }else if(kind==="left"){
+      const leftN=arr.filter(c=>c.hand==="left").length;
+      S.dark=Math.max(0,S.dark+Math.min(5,(cf.leftDark||3)+(leftN-1)));
+      S.flags.usedLeft=true;
+      if(cf.leftSet)Object.assign(S.flags,cf.leftSet);
+      if(cf.leftSacrifice)S.sacrifices.push(cf.leftSacrifice);
+      S.thread.push({lab:"Reached for the left hand",left:true});
+      applyTier();go(cf.leftTo);
+    }else{
+      S.flags.usedRight=true;
+      if(cf.rightSet)Object.assign(S.flags,cf.rightSet);
+      if(cf.rightSacrifice)S.sacrifices.push(cf.rightSacrifice);
+      S.thread.push({lab:"Kept to the right hand",left:false});
+      applyTier();go(cf.rightTo);
+    }
+  };
+  scrollTop();
+}
+function renderInterlude(){
+  topbar.style.display="flex";setScene("star_dark");sceneBg.style.opacity=.07;drawThread();applyTier();autosave();
+  const cfg=ACTS[S.node]||ACTS.act1_close;
+  const t=tier(S.dark);
+  const read={
+    light:"You walked the whole way on the right hand. You are tired in the body and clean in the blood. The house feels like the house. The dead still answer when you bring them cake. Whatever comes next, you meet it as yourself.",
+    tempted:"You strayed only a step, and stepped back without thinking. But you have learned the shape of the door now, and a door you have noticed is a door you will notice again.",
+    slipping:"You have been to the other side and come back lighter by something you loved. The well tastes of salt. You go on with a small cold place in you where a warmth used to be — and the knowledge that the second walk is shorter than the first.",
+    lefthand:"You are good at this now, and being good at it has begun to cost the people around you, not only you. The crow is gone. Your reflection runs a half-step behind. You go on as someone the town has started, very quietly, to stand further away from.",
+    raven:"You are most of the way to being what the book was waiting for. It is a kind of peace, the dark — it asks so little and gives so much, and only the people you love have to pay for it. You go on as the most powerful Owens woman alive, and the loneliest."
+  }[t];
+  const sac=S.sacrifices.length?`<p class="omen">Paid along the way: ${S.sacrifices.join("; ")}.</p>`:"";
+  const code=encodeS(S);
+  app.innerHTML=`<article class="interlude ${reduce?'':'fade'}">
+    <header style="padding-top:3.2rem"><p class="eyebrow">${cfg.label}</p>
+      <h2 class="chapter">Where You Stand</h2></header>
+    ${plate("cardback")}
+    <p class="tier-name">${tierName(S.dark)}</p>
+    <div class="body" style="text-align:left">${paras([read],false)}${sac}
+      <p class="omen">${omenLine()}</p>
+      <p style="text-align:center;color:var(--bone-dim)">${cfg.teaser}</p>
+    </div>
+    ${cfg.next?`<div class="endnav"><button class="btn" id="nextBtn">${cfg.nextLabel}</button></div>`:""}
+    <div class="savebox">
+      <h3>Your progress is saved</h3>
+      <p style="color:var(--bone-dim);font-size:.9rem;margin:.2rem 0 .5rem">This device remembers automatically. To carry your path to another device, copy this grimoire-code and paste it back in.</p>
+      <textarea id="saveOut" readonly>${code}</textarea>
+      <div class="row">
+        <button class="btn ghost" id="copyBtn">Copy</button>
+        <input id="loadIn" placeholder="paste a saved code…" style="flex:1;min-width:9rem;background:#0c1413;color:var(--bone);border:1px solid var(--rule);border-radius:2px;padding:.4rem .6rem;font-family:ui-monospace,monospace;font-size:.72rem"/>
+        <button class="btn ghost" id="loadBtn">Resume</button>
+      </div>
+    </div>
+    <div class="endnav"><button class="btn ghost" id="againBtn">Begin again</button></div>
+  </article>`;
+  if(cfg.next)document.getElementById("nextBtn").onclick=()=>go(cfg.next);
+  document.getElementById("copyBtn").onclick=(e)=>copyText(document.getElementById("saveOut").value,e.target);
+  document.getElementById("loadBtn").onclick=()=>{try{resume(decodeS(document.getElementById("loadIn").value.trim()));}catch(e){document.getElementById("loadBtn").textContent="Invalid";}};
+  document.getElementById("againBtn").onclick=()=>{clearLocal();go("cover");};
+  scrollTop();
+}
+function scrollTop(){window.scrollTo({top:0,behavior:reduce?"auto":"smooth"});}
+
+document.getElementById("restart").onclick=()=>go("cover");
+function copyText(t,btn){const done=()=>{if(btn)btn.textContent="Copied";};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done).catch(()=>fallbackCopy(t,done));}
+  else fallbackCopy(t,done);}
+function fallbackCopy(t,done){const ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand("copy");}catch(e){}done();ta.remove();}
+function grimoireModal(){
+  const last=trail[trail.length-1];
+  if(story[last]&&story[last].interlude)return;
+  const code=btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+  const ov=document.createElement("div");ov.className="modal";
+  ov.innerHTML='<div class="modal-card"><h3>Save your path</h3><p style="color:var(--bone-dim);font-size:.9rem;margin:.2rem 0 0">Copy this to keep your path. Paste it back at the end of an act to resume. The dark remembers.</p><textarea readonly>'+code+'</textarea><div class="row"><button class="btn ghost" data-act="copy">Copy</button><button class="btn ghost" data-act="close">Close</button></div></div>';
+  ov.addEventListener("click",ev=>{const a=ev.target.getAttribute&&ev.target.getAttribute("data-act");if(a==="copy")copyText(code,ev.target);if(a==="close"||ev.target===ov)ov.remove();});
+  document.body.appendChild(ov);}
+function grimoireBook(){
+  const t=tier(S.dark), idx={light:0,tempted:1,slipping:2,lefthand:3,raven:4}[t]||0;
+  const warnHead = idx>=3 ? "The Left Hand" : "The Left Hand — read, but do not reach";
+  let darkPages="";
+  if(idx>=2) darkPages+=`<p style="color:var(--gold);font-style:italic;margin-top:.5rem">The ink on these pages looks less like a warning tonight than like a recipe. You tell yourself you are only reading.</p>`;
+  if(idx>=3) darkPages+=`<div class="recipe warn"><b>To send a bill out of sight</b><br/>Henbane to bind the cost, belladonna to choose the stranger, a drop of your own blood to seal it. The far-off cannot trace what they cannot see — clean hands, full heart, and a horizon that has agreed not to look back at you.</div>`;
+  if(idx>=4) darkPages+=`<div class="recipe warn"><b>The last page — it is addressed to you</b><br/>You have stopped needing me to tell you how; you knew before you could read. Everything you love is a handle I can hold. Turn the page, and we need never be tired, or frightened, or ordinary, again. <i>— and it is signed in your own hand.</i></div>`;
+  const ov=document.createElement("div");ov.className="modal";
+  ov.innerHTML=`<div class="modal-card grim">
+    <h3>The Owens Grimoire</h3>
+    <p style="color:var(--bone-dim);font-size:.85rem;margin:.2rem 0 0">Copied hand to hand since Maria. Reading costs nothing — it is the <i>reaching</i> that is charged.</p>
+    <h4>The First Rule</h4>
+    <p>Magic has two hands. The <b>right hand</b> heals, mends, and protects, and does no harm; whatever it spends, the witch pays out of herself. The <b>left hand</b> — the Dark Art — takes what it wants and works at once, and nothing it gives is free. Use it only when you must, and know the price before you ask.</p>
+    <p><i>The threefold law:</i> whatever you send into the world returns to you three times over — and not always to the hand that sent it.</p>
+    <h4>Right-Hand Cures</h4>
+    <div class="recipe"><b>Courage Tea</b><br/>Currants, thyme, and warming spices. For protection and healing — drink it when the work has worn you thin.</div>
+    <div class="recipe"><b>To ward a fever</b><br/>Feverfew to turn the illness; rosemary and salt to dispel what has taken hold; a blue bead at the throat, for blue is protection.</div>
+    <div class="recipe"><b>Protection</b><br/>Black cloth, red thread, clove, and blackthorn. Rosemary oil on the threshold, lavender in the pocket, and wear blue.</div>
+    <div class="recipe"><b>To break a small hex</b><br/>Salt, lavender, lemon verbena, lemon juice, and a little coconut oil.</div>
+    <div class="recipe"><b>Love Potion № 9</b><br/>Anise, rosemary, honey, and cloves, simmered nine hours on the back burner. The most asked-for cure — and the one to give most carefully.</div>
+    <div class="recipe"><b>Black soap</b><br/>Brewed twice a year in the dark of the March moon and scented with lavender. It washes more than the hands.</div>
+    <h4>Reading the Signs</h4>
+    <p>A candle that burns blue means a spirit is near. Salt on the windowsill turns harm away. When the birds fall silent over one house alone, something in that house has changed. A reflection that runs a half-step behind its owner has begun to keep its own counsel.</p>
+    <h4 style="color:var(--gold)">${warnHead}</h4>
+    <div class="recipe warn"><b>The disquieting pantry</b><br/>Blood, for power that asks no leave. Belladonna and nightshade, for the sight. Wormwood, for divination. Henbane, to bind. Mandrake, the heart of all love potions. The heart of a dove. These work, and they work at once — and the bill falls, three times over, on the people you love.</div>
+    <div class="recipe warn"><b>The Book of the Raven</b><br/>The left-handed grimoire, in a hand older than this family. It scalds an honest palm, and it goes, always, to the next woman who needs it. It has learned your name.</div>
+    ${darkPages}
+    <div class="row" style="margin-top:1.1rem"><button class="btn ghost" data-act="close">Close the book</button></div>
+  </div>`;
+  ov.addEventListener("click",ev=>{const a=ev.target.getAttribute&&ev.target.getAttribute("data-act");if(a==="close"||ev.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+document.getElementById("grimoireBtn").onclick=grimoireBook;
+document.getElementById("saveBtn").onclick=grimoireModal;
+
+loadPrefs();wireReader();applyPrefs();
+go("cover");
+</script>
+</body>
+</html>
